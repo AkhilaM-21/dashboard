@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+/* Custom Styles */
+body {
+  background-color: #f8fafc;
+}
+
+.plan-card:hover {
+  transform: translateY(-2px);
+}
