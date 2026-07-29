@@ -71,6 +71,12 @@ console.log(
     : '[INIT] Phone verification OFF - /start hands out the join link immediately'
 );
 
+// Surface missing config at boot — otherwise the first symptom is a subscriber
+// being sent to the wrong place.
+if (!TELEGRAM_BOT_TOKEN) console.error('[INIT] WARNING: TELEGRAM_BOT_TOKEN is not set - registrations will be refused.');
+if (!CHANNEL_ID) console.error('[INIT] WARNING: CHANNEL_ID is not set - registrations will be refused.');
+if (TELEGRAM_BOT_TOKEN && CHANNEL_ID) console.log(`[INIT] Channel: ${CHANNEL_ID}`);
+
 let BOT_USERNAME = '';
 // Fetch Bot Username on Startup
 if (TELEGRAM_BOT_TOKEN) {
@@ -82,11 +88,20 @@ if (TELEGRAM_BOT_TOKEN) {
     .catch(err => console.error("[INIT] Failed to fetch bot username:", err.message));
 }
 
-// Helper: Generate One-Time Link
+/**
+ * Creates a single-use invite to the channel.
+ *
+ * Returns null rather than a placeholder URL when it can't: t.me resolves any
+ * unknown path as a username, so a made-up link doesn't fail — it sends the
+ * subscriber into a stranger's channel, which is far worse than an error.
+ */
 const generateOneTimeLink = async () => {
   if (!TELEGRAM_BOT_TOKEN || !CHANNEL_ID) {
-    console.log("Bot not configured. Returning placeholder link.");
-    return "https://t.me/your_channel_link"; // Replace with your static channel link if needed
+    console.error(
+      `[TELEGRAM] Cannot create an invite - ${!TELEGRAM_BOT_TOKEN ? 'TELEGRAM_BOT_TOKEN' : 'CHANNEL_ID'} is not set. ` +
+      `Set it in your host's environment variables.`
+    );
+    return null;
   }
 
   try {
@@ -98,8 +113,10 @@ const generateOneTimeLink = async () => {
     });
     return response.data.result.invite_link;
   } catch (error) {
-    console.error("Telegram API Error:", error.response ? error.response.data : error.message);
-    return "https://t.me/demo_fallback_link"; // Return a dummy link so the UI doesn't break
+    const detail = error.response?.data?.description || error.message;
+    console.error(`[TELEGRAM] createChatInviteLink failed for chat ${CHANNEL_ID}: ${detail}`);
+    console.error('[TELEGRAM] Check CHANNEL_ID is the numeric id (npm run chat-id) and the bot is an admin with "Invite Users via Link".');
+    return null;
   }
 };
 
@@ -171,6 +188,12 @@ app.post('/api/register', async (req, res) => {
     // single-use and unique to this user; when they join, the chat_member
     // update tells us their Telegram id so expiry can remove them later.
     const inviteLink = await generateOneTimeLink();
+    if (!inviteLink) {
+      // Better to reject than to record a paid subscriber we can't let in.
+      return res.status(503).json({
+        error: 'Could not create your channel invite. Nothing has been charged — please try again shortly.'
+      });
+    }
 
     const newUser = new User({
       fullName,
