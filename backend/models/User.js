@@ -19,7 +19,8 @@ const UserSchema = new mongoose.Schema({
   subscriptionExpiryDate: Date,
   telegramInviteLink: String,
   isTelegramLinkUsed: { type: Boolean, default: false },
-  telegramUserId: String // Captured later via Bot to manage kicks/bans
+  telegramUserId: String, // Captured later via Bot to manage kicks/bans
+  expiryWarningSent: { type: Boolean, default: false } // Guards against re-sending the reminder every minute
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);
