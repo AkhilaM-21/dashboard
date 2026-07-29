@@ -1,6 +1,9 @@
-// Point at the local backend by default (mock JSON store, no Atlas needed).
-// Override per-environment in frontend/.env -> VITE_API_URL=https://your-server
-export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+// In a production build the backend serves these files, so an empty base means
+// same-origin requests (/api/...) and no CORS. In dev, Vite serves the frontend
+// on its own port, so point at the local backend.
+// Override either with VITE_API_URL when the API lives on a different host.
+const DEFAULT_API_URL = import.meta.env.PROD ? "" : "http://localhost:5000";
+export const API_URL = import.meta.env.VITE_API_URL || DEFAULT_API_URL;
 
 // Admin dashboard gate. Change these in frontend/.env.
 // NOTE: Vite inlines env vars into the bundle, so this is a light gate for a

@@ -1,6 +1,10 @@
 # Deploying to Render
 
-Two services: the API (Node web service) and the site (static). Both free tier.
+**One service runs the whole app.** The build compiles the frontend into
+`frontend/dist`, and the Express server serves those files alongside `/api/*`.
+
+That means a single URL, no CORS to configure (the browser talks to the same
+origin it loaded from), and only one free-tier service to keep awake.
 
 ---
 
@@ -41,41 +45,36 @@ store can't be used in production — every registration would vanish.
 ## 2. Deploy
 
 Push this branch to GitHub, then in Render: **New → Blueprint → pick this repo**.
-It reads [render.yaml](render.yaml) and creates both services.
+It reads [render.yaml](render.yaml) and creates the service.
 
 Fill in the values Render prompts for:
-
-**tradotsav-api**
 
 | Variable | Value |
 |---|---|
 | `MONGO_URI` | the Atlas string from step 1 |
 | `TELEGRAM_BOT_TOKEN` | your new token |
 | `CHANNEL_ID` | `-1003967476757` |
-| `CORS_ORIGIN` | the site URL from below (fill in after first deploy) |
-| `TWILIO_*` | leave blank unless you want real SMS |
-
-Don't set `PORT` — Render injects it.
-
-**tradotsav-web**
-
-| Variable | Value |
-|---|---|
-| `VITE_API_URL` | `https://tradotsav-api.onrender.com` |
 | `VITE_ADMIN_USER` | your admin username |
 | `VITE_ADMIN_PASS` | a new password |
+| `TWILIO_*` | leave blank unless you want real SMS |
 
-Deploy the API first so you know its URL, then set `VITE_API_URL` and deploy the
-site. Finally set `CORS_ORIGIN` on the API to the site's URL and redeploy it.
+Don't set `PORT` — Render injects it. Don't set `VITE_API_URL` — leaving it blank
+is what makes the frontend call its own origin. Don't set `CORS_ORIGIN` either;
+it's only needed if you host the frontend somewhere else.
 
-Vite reads env vars at **build** time, so changing `VITE_*` needs a redeploy,
-not just a restart.
+`VITE_*` values are compiled into the JavaScript at **build** time, so changing
+the admin password needs a redeploy, not just a restart.
+
+Prefer two separate services (a static site plus an API)? That works too — set
+`VITE_API_URL` to the API's URL and `CORS_ORIGIN` to the site's URL. You then
+have two free services to keep awake instead of one.
 
 ---
 
 ## 3. After deploying
 
-- Visit `https://tradotsav-api.onrender.com/api/health` — should return
+- Visit `https://<your-service>.onrender.com/` — the signup page should load.
+- Visit `https://<your-service>.onrender.com/api/health` — should return
   `{"ok":true,"mode":"mongo"}`. If it says `mock`, `MONGO_URI` didn't take.
 - Register once and confirm the row appears in Atlas.
 - The database starts empty. `npm run seed` is local-only — don't run it against

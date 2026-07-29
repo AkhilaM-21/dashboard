@@ -1,4 +1,6 @@
 require('dotenv').config();
+const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -36,6 +38,17 @@ app.use(express.json());
 
 // Render (and most hosts) ping a URL to check the service is alive
 app.get('/api/health', (req, res) => res.json({ ok: true, mode: USE_MOCK_DB ? 'mock' : 'mongo' }));
+
+// Serve the built frontend from this same service when it's present, so the
+// whole app runs on one URL (and same-origin requests need no CORS at all).
+// Absent in local dev, where Vite serves the frontend on its own port.
+const FRONTEND_DIST = path.join(__dirname, '..', 'frontend', 'dist');
+const SERVE_FRONTEND = fs.existsSync(path.join(FRONTEND_DIST, 'index.html'));
+
+if (SERVE_FRONTEND) {
+  app.use(express.static(FRONTEND_DIST));
+  console.log(`[INIT] Serving frontend from ${FRONTEND_DIST}`);
+}
 
 if (USE_MOCK_DB) {
   console.log(`[DB] Mock mode - using local file store: ${User._dataFile}`);
@@ -629,6 +642,14 @@ const handleUpdate = async (update) => {
 
 // Start the poller
 pollTelegramUpdates();
+
+// Anything that isn't an API call goes to the SPA. Registered last so it can't
+// shadow the routes above.
+if (SERVE_FRONTEND) {
+  app.get(/^(?!\/api\/).*/, (req, res) => {
+    res.sendFile(path.join(FRONTEND_DIST, 'index.html'));
+  });
+}
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

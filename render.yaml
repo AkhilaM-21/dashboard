@@ -1,13 +1,17 @@
-# Render Blueprint — deploys the backend API and the frontend site together.
-# In Render: New > Blueprint > pick this repo. Secrets marked sync:false are
-# typed into the dashboard, never committed here.
+# Render Blueprint — one service running the whole app.
+#
+# The build compiles the frontend into frontend/dist, and the Express server
+# serves those files alongside /api/*. One URL, so no CORS to configure and
+# only one free-tier service to keep awake.
+#
+# In Render: New > Blueprint > pick this repo.
+# Values marked sync:false are typed into the dashboard, never committed here.
 services:
   - type: web
-    name: tradotsav-api
+    name: tradotsav
     runtime: node
     plan: free
-    rootDir: backend
-    buildCommand: npm install
+    buildCommand: npm run build
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
@@ -24,8 +28,15 @@ services:
         value: "false"
       - key: EXPIRY_WARNING_MINUTES
         value: "1440"
-      - key: CORS_ORIGIN
+
+      # Baked into the JS bundle at build time — changing these needs a redeploy.
+      - key: VITE_ADMIN_USER
         sync: false
+      - key: VITE_ADMIN_PASS
+        sync: false
+
+      # Optional: real SMS for the signup OTP. Leave blank and the code is
+      # shown on screen instead.
       - key: TWILIO_ACCOUNT_SID
         sync: false
       - key: TWILIO_AUTH_TOKEN
@@ -33,20 +44,7 @@ services:
       - key: TWILIO_PHONE_NUMBER
         sync: false
 
-  - type: web
-    name: tradotsav-web
-    runtime: static
-    rootDir: frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
-    envVars:
-      - key: VITE_API_URL
-        sync: false
-      - key: VITE_ADMIN_USER
-        sync: false
-      - key: VITE_ADMIN_PASS
-        sync: false
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+      # Not needed while the frontend is served from this same service.
+      # Set it only if you host the frontend somewhere else.
+      # - key: CORS_ORIGIN
+      #   sync: false

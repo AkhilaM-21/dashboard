@@ -1,0 +1,15 @@
+{
+  "name": "tradotsav-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Subscription signup with Telegram channel access, served as one app",
+  "scripts": {
+    "build": "npm --prefix frontend install && npm --prefix frontend run build && npm --prefix backend install",
+    "start": "npm --prefix backend start",
+    "dev:api": "npm --prefix backend run dev",
+    "dev:web": "npm --prefix frontend run dev"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
