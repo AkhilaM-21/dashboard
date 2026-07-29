@@ -16,8 +16,26 @@ const USE_MOCK_DB = process.env.DB_MODE === 'mock' || !process.env.MONGO_URI;
 const User = USE_MOCK_DB ? require('./models/User.mock') : require('./models/User');
 
 const app = express();
-app.use(cors());
+
+// Wide open by default for local dev. In production set CORS_ORIGIN to your
+// frontend's URL (comma-separated for more than one) so other sites can't
+// drive this API.
+const allowedOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(cors(
+  allowedOrigins.length
+    ? { origin: (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin)) }
+    : {}
+));
+if (allowedOrigins.length) console.log(`[INIT] CORS restricted to: ${allowedOrigins.join(', ')}`);
+
 app.use(express.json());
+
+// Render (and most hosts) ping a URL to check the service is alive
+app.get('/api/health', (req, res) => res.json({ ok: true, mode: USE_MOCK_DB ? 'mock' : 'mongo' }));
 
 if (USE_MOCK_DB) {
   console.log(`[DB] Mock mode - using local file store: ${User._dataFile}`);

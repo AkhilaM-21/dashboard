@@ -1,0 +1,52 @@
+# Render Blueprint — deploys the backend API and the frontend site together.
+# In Render: New > Blueprint > pick this repo. Secrets marked sync:false are
+# typed into the dashboard, never committed here.
+services:
+  - type: web
+    name: tradotsav-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      # Render injects PORT itself — do not set it.
+      - key: DB_MODE
+        value: mongo
+      - key: MONGO_URI
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: CHANNEL_ID
+        sync: false
+      - key: REQUIRE_PHONE_VERIFICATION
+        value: "false"
+      - key: EXPIRY_WARNING_MINUTES
+        value: "1440"
+      - key: CORS_ORIGIN
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+
+  - type: web
+    name: tradotsav-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+      - key: VITE_ADMIN_USER
+        sync: false
+      - key: VITE_ADMIN_PASS
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
