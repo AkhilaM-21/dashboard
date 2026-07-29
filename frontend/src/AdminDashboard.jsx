@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { API_URL } from './config';
+import { API_URL, ADMIN_USER, ADMIN_PASS } from './config';
 
 function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  
+  const [loginError, setLoginError] = useState('');
+  const [loadError, setLoadError] = useState('');
+
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -18,17 +20,31 @@ function AdminDashboard() {
   useEffect(() => {
     if (isAuthenticated) {
       axios.get(`${API_URL}/api/admin/users`)
-        .then(res => setUsers(res.data))
-        .catch(err => console.error(err));
+        .then(res => { setUsers(res.data); setLoadError(''); })
+        .catch(err => {
+          console.error(err);
+          setLoadError(`Could not reach the backend at ${API_URL}. Is it running? (cd backend && npm run dev)`);
+        });
     }
   }, [isAuthenticated]);
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (username === 'Trade' && password === 'LiveDashobard') {
+
+    // Trim: browser autofill and mobile keyboards both like to add a trailing
+    // space, which is invisible in a password field and impossible to debug.
+    const user = username.trim();
+    const pass = password.trim();
+
+    if (user.toLowerCase() === ADMIN_USER.toLowerCase() && pass === ADMIN_PASS) {
       setIsAuthenticated(true);
+      setLoginError('');
     } else {
-      alert("Invalid Credentials");
+      setLoginError(
+        user !== ADMIN_USER.toLowerCase() && user.toLowerCase() !== ADMIN_USER.toLowerCase()
+          ? 'Invalid username or password.'
+          : 'Wrong password. If the field was filled in for you, clear it and type the password by hand.'
+      );
     }
   };
 
@@ -37,17 +53,20 @@ function AdminDashboard() {
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="bg-white p-8 rounded-lg shadow-lg w-96">
           <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Admin Login</h2>
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} autoComplete="off">
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">Username</label>
-              <input type="text" className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-blue-500"
+              <input type="text" name="admin-user" autoComplete="off" className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-blue-500"
                 value={username} onChange={e => setUsername(e.target.value)} />
             </div>
             <div className="mb-6">
               <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
-              <input type="password" className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-blue-500"
+              <input type="password" name="admin-pass" autoComplete="new-password" className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-blue-500"
                 value={password} onChange={e => setPassword(e.target.value)} />
             </div>
+            {loginError && (
+              <p className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">{loginError}</p>
+            )}
             <button type="submit" className="w-full bg-blue-900 text-white font-bold py-2 px-4 rounded hover:bg-blue-800 transition">
               Login
             </button>
@@ -86,7 +105,11 @@ function AdminDashboard() {
       {/* Header & KPIs */}
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-gray-800 mb-4">Live Dashboard</h2>
-        
+
+        {loadError && (
+          <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">{loadError}</div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white p-4 rounded shadow border-l-4 border-blue-500">
             <p className="text-gray-500 text-sm">Total Users</p>

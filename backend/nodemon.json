@@ -1,0 +1,6 @@
+{
+  "//": "The app writes users.json, otp.json and telegram-state.json at runtime. nodemon watches .json by default, so without this every save restarted the server and killed the in-flight request.",
+  "watch": ["."],
+  "ext": "js",
+  "ignore": ["data/*", "node_modules/*", "*.log"]
+}
