@@ -1,8 +1,11 @@
-// In a production build the backend serves these files, so an empty base means
-// same-origin requests (/api/...) and no CORS. In dev, Vite serves the frontend
-// on its own port, so point at the local backend.
-// Override either with VITE_API_URL when the API lives on a different host.
-const DEFAULT_API_URL = import.meta.env.PROD ? "" : "http://localhost:5000";
+// The frontend and API are deployed as separate Render services, so a built
+// site has to call the API by its full URL. Locally, Vite serves the frontend
+// on its own port and the API runs on 5000.
+// Set VITE_API_URL to override either (e.g. a staging backend).
+const DEFAULT_API_URL = import.meta.env.PROD
+  ? "https://dashboard-68wk.onrender.com"
+  : "http://localhost:5000";
+
 export const API_URL = import.meta.env.VITE_API_URL || DEFAULT_API_URL;
 
 // Admin dashboard gate. Change these in frontend/.env.
